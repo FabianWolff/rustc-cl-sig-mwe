@@ -11,7 +11,7 @@ use rustc_hir::intravisit::{walk_expr, Visitor};
 use rustc_interface::{interface::Compiler, Queries};
 use rustc_middle::{
     hir::map::Map,
-    ty::{TyCtxt, TyKind},
+    ty::{TyCtxt, TyKind, TypeckResults},
 };
 use std::env;
 
@@ -32,6 +32,15 @@ impl<'tcx> Visitor<'tcx> for ClVisitor<'tcx> {
         match expr.kind {
             hir::ExprKind::Closure(_capture_by, _fn_decl, _body_id, span, _option_movability) => {
                 println!("Found closure at '{:?}'", span);
+
+                // This works:
+                let typeck_results: &TypeckResults<'_> =
+                    self.tcx.typeck(self.hir.local_def_id(expr.hir_id));
+                let fn_sigs = typeck_results.liberated_fn_sigs();
+                let sig = *(fn_sigs.get(expr.hir_id).unwrap());
+                println!("Closure signature: {:?}", sig);
+
+                // This fails:
                 let ty = self
                     .tcx
                     .type_of(self.hir.local_def_id(expr.hir_id).to_def_id());
